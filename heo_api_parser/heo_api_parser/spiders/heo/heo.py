@@ -1,29 +1,9 @@
 from scrapy import Request, Spider
-from heo_api_parser.items import HeoItem
+from heo_api_parser.spiders.heo.items import HeoItem
+from heo_api_parser.spiders.heo.constants import URL, PAYLOAD, AUTH
 from copy import deepcopy
+
 import json
-
-headers = {
-    'Connection': 'keep-alive',
-    'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="90", "Google Chrome";v="90"',
-    'Accept': 'application/json, text/plain, */*',
-    'sec-ch-ua-mobile': '?0',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36',
-    'Content-Type': 'application/json;charset=UTF-8',
-    'Origin': 'https://www.heo.com',
-    'Sec-Fetch-Site': 'same-origin',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Dest': 'empty',
-    'Referer': 'https://www.heo.com/de/es/',
-    'Accept-Language': 'en-US,en;q=0.9',
-}
-
-articles_by_type_url = 'https://www.heo.com/api/articlesByType'
-articles_url = 'https://www.heo.com/api/articles'
-product_url = 'https://www.heo.com/de/es/product/{id}'
-
-articles_payload = '{{"searchParams":"{search_param}","search":["advforrealms"],"offset":0,"limit":200,"language":"es","overview":false}}'
-article_section_payload = '{{"searchParams":"{search_param}","offset":{offset},"limit":200,"language":"es","overview":false}}'
 
 search_params = {
     'games': 'C8689_O1',
@@ -37,9 +17,34 @@ search_params = {
 class HeoSpider(Spider):
     name = "heo"
 
+    custom_settings = {
+        'DEFAULT_REQUEST_HEADERS': {
+            'Connection': 'keep-alive',
+            'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="90", "Google Chrome";v="90"',
+            'Accept': 'application/json, text/plain, */*',
+            'sec-ch-ua-mobile': '?0',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36',
+            'Content-Type': 'application/json;charset=UTF-8',
+            'Origin': 'https://www.heo.com',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Dest': 'empty',
+            'Referer': 'https://www.heo.com/de/es/',
+            'Accept-Language': 'en-US,en;q=0.9,es;q=0.8,ca;q=0.7',
+        }
+    }
+
     def start_requests(self):
         # Gather cookies
-        yield Request('https://www.heo.com/de/es', callback=self.parse)
+        yield Request(URL.main_url, callback=self.login)
+    
+    def login(self, response):
+        if AUTH.mail and AUTH.password:
+            yield response.follow(URL.login_url, body=PAYLOAD.login_payload.format(mail=AUTH.mail, password=AUTH.password),
+                                  method='POST', callback=self.parse)
+        else:
+            self.logger.warning('No authentification provided')
+            self.parse(response)
 
     def parse(self, response):
         for section, search_param in search_params.items():
@@ -47,8 +52,8 @@ class HeoSpider(Spider):
                     'search_param': search_param,
                     'page': 1,
                     'offset': 0}
-            payload = article_section_payload.format(**meta)
-            yield response.follow(articles_url, headers=headers, body=payload, method='POST',
+            payload = PAYLOAD.article_section_payload.format(**meta)
+            yield response.follow(URL.articles_url, body=payload, method='POST',
                                   callback=self.parse_article_listing, meta=meta)
     
     def parse_article_listing(self, response):
@@ -69,7 +74,7 @@ class HeoSpider(Spider):
             item['barcode'] = article['information'][0]['barcodes']
             item['weight'] = article['information'][0]['weight']
 
-            item['price'] = 'placeholder'
+            item['price'] = article['priceSystem']['singlePrice'] if 'priceSystem' in article else 0
             
             item['es_description'] = article['localization']['esDescription']
             item['es_name'] = article['localization']['esName']
@@ -91,8 +96,8 @@ class HeoSpider(Spider):
             new_meta = deepcopy(response.meta)
             new_meta['page'] = page
             new_meta['offset'] = 200 * (page-1)
-            payload = article_section_payload.format(**new_meta)
-            yield response.follow(articles_url, headers=headers, body=payload, method='POST',
+            payload = PAYLOAD.article_section_payload.format(**new_meta)
+            yield response.follow(URL.articles_url, body=payload, method='POST',
                                   callback=self.parse_article_listing, meta=new_meta)
     
 

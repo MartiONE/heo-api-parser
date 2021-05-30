@@ -32,6 +32,6 @@ The project is on active development so any PR is welcome, I crafted a couple of
 - [ ] support database connection
 - [ ] add section division via cli
 - [ ] add support for custom sections
-- [ ] add login settings for pricing and volume purposes
+- [x] add login settings for pricing and volume purposes
 - [ ] include FR and DE to the data schema
 - [ ] image download and configuration
