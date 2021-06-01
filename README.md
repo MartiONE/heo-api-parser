@@ -1,6 +1,6 @@
 # Introduction
 
-heo-api-parser is a small repository that aims to create a method to extract and process [heo.com](https://www.heo.com/) catalog. The project contains a single spider that goes trough the entire website and downloads all of the items found.
+`heo-api-parser` is a small repository that aims to create a method to extract and process [heo.com](https://www.heo.com/) catalog. The project contains a single spider that goes trough the entire website and downloads all of the items found.
 
 
 # How to use it
@@ -25,6 +25,9 @@ pip install -r requirements
 ```
 scrapy crawl heo -o output.json
 ```
+
+# Authentification
+In order to use an authentified user on the heo platform you must provide 2 environment variables to the application which will be gathered by the scrapy spider and used to log in. Those are `mail` and `password`
 
 # Development
 The project is on active development so any PR is welcome, I crafted a couple of things TODO but feel free to add or modify any.
