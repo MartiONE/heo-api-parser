@@ -12,5 +12,5 @@ class PAYLOAD:
     login_payload = '{{"name":"{mail}","password":"{password}","stayConnected":true}}'
 
 class AUTH:
-    mail = os.environ['mail']
-    password = os.environ['password']
+    mail = os.environ.get('mail')
+    password = os.environ.get('password')
